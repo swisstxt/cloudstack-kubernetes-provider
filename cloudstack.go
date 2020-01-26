@@ -48,7 +48,9 @@ type CSConfig struct {
 	}
 }
 
-// CSCloud is an implementation of Interface for CloudStack.
+// CSCloud implements cloudprovider.Interface, cloudprovider.LoadBalancer,
+// cloudprovider.Instances, cloudprovider.Zones and cloudprovider.Clusters
+// for Apache CloudStack.
 type CSCloud struct {
 	client    *cloudstack.CloudStackClient
 	projectID string // If non-"", all resources will be created within this project
@@ -102,7 +104,8 @@ func newCSCloud(cfg *CSConfig) (*CSCloud, error) {
 func (cs *CSCloud) Initialize(clientBuilder cloudprovider.ControllerClientBuilder, stop <-chan struct{}) {
 }
 
-// LoadBalancer returns an implementation of LoadBalancer for CloudStack.
+// LoadBalancer returns an implementation of cloudprovider.LoadBalancer for Apache CloudStack.
+// Since CSCloud implements all cloud provider interfaces, this simply returns itself.
 func (cs *CSCloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	if cs.client == nil {
 		return nil, false
@@ -111,7 +114,8 @@ func (cs *CSCloud) LoadBalancer() (cloudprovider.LoadBalancer, bool) {
 	return cs, true
 }
 
-// Instances returns an implementation of Instances for CloudStack.
+// Instances returns an implementation of cloudprovider.Instances for Apache CloudStack.
+// Since CSCloud implements all cloud provider interfaces, this simply returns itself.
 func (cs *CSCloud) Instances() (cloudprovider.Instances, bool) {
 	if cs.client == nil {
 		return nil, false
@@ -120,7 +124,8 @@ func (cs *CSCloud) Instances() (cloudprovider.Instances, bool) {
 	return cs, true
 }
 
-// Zones returns an implementation of Zones for CloudStack.
+// Zones returns an implementation of cloudprovider.Zones for Apache CloudStack.
+// Since CSCloud implements all cloud provider interfaces, this simply returns itself.
 func (cs *CSCloud) Zones() (cloudprovider.Zones, bool) {
 	if cs.client == nil {
 		return nil, false
@@ -129,20 +134,20 @@ func (cs *CSCloud) Zones() (cloudprovider.Zones, bool) {
 	return cs, true
 }
 
-// Clusters returns an implementation of Clusters for CloudStack.
+// Clusters is not supported in this provider. Returns false.
 func (cs *CSCloud) Clusters() (cloudprovider.Clusters, bool) {
 	if cs.client == nil {
-		return nil, false
+			return nil, false
 	}
 
 	klog.Warning("This cloud provider doesn't support clusters")
 	return nil, false
 }
 
-// Routes returns an implementation of Routes for CloudStack.
+// Routes is not supported in this provider, Returns false.
 func (cs *CSCloud) Routes() (cloudprovider.Routes, bool) {
 	if cs.client == nil {
-		return nil, false
+			return nil, false
 	}
 
 	klog.Warning("This cloud provider doesn't support routes")
@@ -187,7 +192,7 @@ func (cs *CSCloud) GetZone(ctx context.Context) (cloudprovider.Zone, error) {
 	return zone, nil
 }
 
-// GetZoneByProviderID returns the Zone, found by using the provider ID.
+// GetZoneByProviderID returns the Zone, found by using the CloudStack instance ID.
 func (cs *CSCloud) GetZoneByProviderID(ctx context.Context, providerID string) (cloudprovider.Zone, error) {
 	zone := cloudprovider.Zone{}
 
@@ -209,7 +214,7 @@ func (cs *CSCloud) GetZoneByProviderID(ctx context.Context, providerID string) (
 	return zone, nil
 }
 
-// GetZoneByNodeName returns the Zone, found by using the node name.
+// GetZoneByNodeName returns the Zone, found by using the node/instance name.
 func (cs *CSCloud) GetZoneByNodeName(ctx context.Context, nodeName types.NodeName) (cloudprovider.Zone, error) {
 	zone := cloudprovider.Zone{}
 
