@@ -136,20 +136,12 @@ func (cs *CSCloud) Zones() (cloudprovider.Zones, bool) {
 
 // Clusters is not supported in this provider. Returns false.
 func (cs *CSCloud) Clusters() (cloudprovider.Clusters, bool) {
-	if cs.client == nil {
-			return nil, false
-	}
-
 	klog.Warning("This cloud provider doesn't support clusters")
 	return nil, false
 }
 
 // Routes is not supported in this provider, Returns false.
 func (cs *CSCloud) Routes() (cloudprovider.Routes, bool) {
-	if cs.client == nil {
-			return nil, false
-	}
-
 	klog.Warning("This cloud provider doesn't support routes")
 	return nil, false
 }
