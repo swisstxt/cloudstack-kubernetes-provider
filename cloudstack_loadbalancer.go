@@ -182,7 +182,7 @@ func (cs *CSCloud) EnsureLoadBalancer(ctx context.Context, clusterName string, s
 		}
 		port, err := strconv.ParseInt(lbRule.Publicport, 10, 32)
 		if err != nil {
-			return nil, fmt.Errorf("Error parsing port %d: %v", lbRule.Publicport, err)
+			return nil, fmt.Errorf("Error parsing port %s: %v", lbRule.Publicport, err)
 		}
 
 		klog.V(4).Infof("Deleting firewall rules associated with load balancer rule: %v (%v:%v:%v)", lbRule.Name, protocol, lbRule.Publicip, port)
@@ -625,6 +625,53 @@ func compareStringSlice(x, y []string) bool {
     return false
 }
 
+func ruleToString(rule *cloudstack.FirewallRule) string {
+	ls := &strings.Builder{}
+	if rule == nil {
+		ls.WriteString("nil")
+	} else {
+		switch rule.Protocol {
+		case "tcp":
+			fallthrough
+		case "udp":
+			fmt.Fprintf(ls, "{[%s] -> %s:[%d-%d] (%s)}", rule.Cidrlist, rule.Ipaddress, rule.Startport, rule.Endport, rule.Protocol)
+		case "icmp":
+			fmt.Fprintf(ls, "{[%s] -> %s [%d,%d] (%s)}", rule.Cidrlist, rule.Ipaddress, rule.Icmptype, rule.Icmpcode, rule.Protocol)
+		default:
+			fmt.Fprintf(ls, "{[%s] -> %s (%s)}", rule.Cidrlist, rule.Ipaddress, rule.Protocol)
+		}
+	}
+	return ls.String()
+}
+
+func rulesToString(rules []*cloudstack.FirewallRule) string {
+	ls := &strings.Builder{}
+	first := true
+	for _, rule := range rules {
+		if first {
+			first = false
+		} else {
+			ls.WriteString(", ")
+		}
+		ls.WriteString(ruleToString(rule))
+	}
+	return ls.String()
+}
+
+func rulesMapToString(rules map[*cloudstack.FirewallRule]bool) string {
+	ls := &strings.Builder{}
+	first := true
+	for rule, _ := range rules {
+		if first {
+			first = false
+		} else {
+			ls.WriteString(", ")
+		}
+		ls.WriteString(ruleToString(rule))
+	}
+	return ls.String()
+}
+
 // updateFirewallRule creates a firewall rule for a load balancer rule
 //
 // If the rule list is empty, all internet (IPv4: 0.0.0.0/0) is opened for the
@@ -647,7 +694,7 @@ func (lb *loadBalancer) updateFirewallRule(publicIpId string, publicPort int, pr
 	if err != nil {
 		return false, fmt.Errorf("error fetching firewall rules for public IP %v: %v", publicIpId, err)
 	}
-	klog.V(4).Infof("All firewall rules for %v: %v", lb.ipAddr, r.FirewallRules)
+	klog.V(4).Infof("All firewall rules for %v: %v", lb.ipAddr, rulesToString(r.FirewallRules))
 
 	// find all rules that have a matching proto+port
 	// a map may or may not be faster, but is a bit easier to understand
@@ -658,7 +705,7 @@ func (lb *loadBalancer) updateFirewallRule(publicIpId string, publicPort int, pr
 		} else {
 		}
 	}
-	klog.V(4).Infof("Matching rules for %v: %v", lb.ipAddr, filtered)
+	klog.V(4).Infof("Matching rules for %v: %v", lb.ipAddr, rulesMapToString(filtered))
 
 	// determine if we already have a rule with matching cidrs
 	var match *cloudstack.FirewallRule
